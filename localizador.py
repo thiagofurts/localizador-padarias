@@ -165,7 +165,7 @@ def calculate_distance_km(lat1, lon1, lat2, lon2):
     return distance
 
 # --- API ---
-GOOGLE_API_KEY = "AIzaSyAQs7DaqMl4i4aSRYBiXy_0Xjyss0bBW5Y" 
+GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"] 
 GEOCODE_URL = "https://maps.googleapis.com/maps/api/geocode/json"
 NEARBY_URL = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
 DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
