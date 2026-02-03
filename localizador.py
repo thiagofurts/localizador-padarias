@@ -52,48 +52,15 @@ COLOR_BG_SIDEBAR = "#006da8"
 COLOR_TABLE_BG = "#FFFFFF"   
 COLOR_TABLE_TEXT = "#333333" 
 
-# --- CSS V34 (A VOLTA DA SETINHA - MODO SEGURO) ---
+# --- CSS V28 ---
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@400;600;700&display=swap');
 
-    /* 1. O HEADER VOLTA AO NORMAL, MAS TRANSPARENTE */
-    /* Não mexemos na altura nem no display. Deixamos ele quieto lá. */
-    [data-testid="stHeader"] {{
-        background-color: transparent !important;
-        z-index: 1;
-    }}
-
-    /* 2. SÓ ESCONDEMOS A DECORAÇÃO (Linha colorida) E MENU */
-    [data-testid="stDecoration"], 
-    [data-testid="stToolbar"], 
-    [data-testid="stStatusWidget"] {{
-        display: none !important;
-    }}
-
-    /* 3. A SETINHA: VISÍVEL E COM ALTO CONTRASTE */
-    [data-testid="stSidebarCollapsedControl"] {{
-        display: block !important;
-        color: {COLOR_WHITE} !important;
-        background-color: {COLOR_BG_SIDEBAR} !important; /* Fundo azul para garantir visibilidade */
-        border-radius: 0 0 8px 0;
-        padding: 8px;
-        margin-top: 5px; /* Ajuste fino */
-    }}
-    
-    /* Ícone da setinha */
-    [data-testid="stSidebarCollapsedControl"] svg {{
-        fill: {COLOR_WHITE} !important;
-        stroke: {COLOR_WHITE} !important;
-    }}
-
-    /* Remove instruções de input */
-    [data-testid="InputInstructions"] {{ display: none !important; }}
-    
-    /* Ajuste do topo da página para o conteúdo subir um pouco */
+    [data-testid="stHeader"] {{ display: none; }} 
     .block-container {{ padding-top: 2rem !important; }}
+    [data-testid="InputInstructions"] {{ display: none !important; }}
 
-    /* FONTES E CORES GERAIS */
     h1, h2, h3, button {{ font-family: 'Poppins', sans-serif !important; }}
     html, body, p, label, .stMarkdown, li, input, .stDataFrame {{ font-family: 'Inter', sans-serif !important; }}
 
@@ -198,10 +165,7 @@ def calculate_distance_km(lat1, lon1, lat2, lon2):
     return distance
 
 # --- API ---
-# LEMBRE-SE: Use st.secrets se for subir pro GitHub!
 GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"] 
-# GOOGLE_API_KEY = "SUA_CHAVE_AQUI_PARA_TESTE_LOCAL"
-
 GEOCODE_URL = "https://maps.googleapis.com/maps/api/geocode/json"
 NEARBY_URL = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
 DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
@@ -421,8 +385,8 @@ if st.session_state.geo_context:
                 display_df.to_excel(writer, index=False)
             st.download_button("🔽 Baixar Excel Completo", output.getvalue(), "leads_sqg.xlsx", "application/vnd", use_container_width=True)
 else:
-    st.title("Bem-vindo ao Localizador SQG")
-    st.markdown("### Inteligência Georreferenciada para Prospecção Ativa")
+    st.title("Bem-vindo ao Localizador de Padarias da SQG")
+    st.markdown("### Inteligência Georreferenciada para Prospecção Ativa de Padarias")
     st.markdown("---")
     
     col_tut1, col_tut2 = st.columns([0.6, 0.4])
@@ -430,13 +394,13 @@ else:
     with col_tut1:
         st.markdown(textwrap.dedent(f"""
         <div class="tutorial-card">
-            <h4>🚀 Como usar a ferramenta</h4>
+            <h4>⚙️ Como usar a ferramenta</h4>
             <p style="margin-top:15px"><span class="step-number">1</span> <b>Defina o Alvo:</b><br>
             Insira o CEP de referência na barra lateral e o <b>Raio de busca</b> desejado.</p>
             <p><span class="step-number">2</span> <b>Pesquisa Inteligente:</b><br>
             Clique em 'Buscar'. O sistema fará uma pesquisa completa na região para identificar todas as padarias dentro da área selecionada.</p>
             <p><span class="step-number">3</span> <b>Extração de Dados:</b><br>
-            Com as padarias identificadas, defina quantas deseja listar e clique em 'Listar dados' para revelar telefones, sites e endereços validados.</p>
+            Com as padarias identificadas, defina quantas deseja detalhar e clique em 'Listar dados' para listar os telefones e endereços validados.</p>
             <p><span class="step-number">4</span> <b>Finalização:</b><br>
             Baixe a planilha (Excel/CSV) para sua prospecção ou clique no link da tabela para abrir a localização exata no Google Maps.</p>
         </div>
