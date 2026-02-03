@@ -52,15 +52,15 @@ COLOR_BG_SIDEBAR = "#006da8"
 COLOR_TABLE_BG = "#FFFFFF"   
 COLOR_TABLE_TEXT = "#333333" 
 
-# --- CSS V28 ---
+# --- CSS V37 (MODO SEGURO + UPLOAD ESTILIZADO) ---
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@400;600;700&display=swap');
 
-    [data-testid="stHeader"] {{ display: none; }} 
-    .block-container {{ padding-top: 2rem !important; }}
+    /* Remove instruções de input chata do topo dos campos */
     [data-testid="InputInstructions"] {{ display: none !important; }}
-
+    
+    /* FONTES E CORES GERAIS */
     h1, h2, h3, button {{ font-family: 'Poppins', sans-serif !important; }}
     html, body, p, label, .stMarkdown, li, input, .stDataFrame {{ font-family: 'Inter', sans-serif !important; }}
 
@@ -91,6 +91,13 @@ st.markdown(f"""
         transform: translateY(-2px);
         box-shadow: 0 6px 12px rgba(0,0,0,0.15);
         background-color: #ffc300 !important;
+    }}
+    
+    /* Estilo do File Uploader na Sidebar */
+    [data-testid="stFileUploader"] section {{
+        background-color: rgba(255,255,255,0.1);
+        border-radius: 8px;
+        padding: 10px;
     }}
 
     /* TABELA */
@@ -143,6 +150,7 @@ if 'seen_ids' not in st.session_state: st.session_state.seen_ids = set()
 if 'current_leads' not in st.session_state: st.session_state.current_leads = [] 
 if 'geo_context' not in st.session_state: st.session_state.geo_context = None
 if 'cep_digitado' not in st.session_state: st.session_state.cep_digitado = ""
+if 'blacklist_ids' not in st.session_state: st.session_state.blacklist_ids = set() # NOVO: Blacklist
 
 # --- FUNÇÕES ---
 def formatar_cep():
@@ -166,6 +174,8 @@ def calculate_distance_km(lat1, lon1, lat2, lon2):
 
 # --- API ---
 GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"] 
+# GOOGLE_API_KEY = "SUA_CHAVE_AQUI_PARA_TESTE_LOCAL"
+
 GEOCODE_URL = "https://maps.googleapis.com/maps/api/geocode/json"
 NEARBY_URL = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
 DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
@@ -299,6 +309,29 @@ with st.sidebar:
     
     raio_input = st.slider("Raio (km)", 1.0, 50.0, 3.0, 0.5)
     
+    st.markdown("---")
+    st.header("📂 Blacklist (Opcional)")
+    uploaded_file = st.file_uploader("Subir CSV de clientes já visitados", type=["csv"])
+    
+    if uploaded_file is not None:
+        try:
+            # Tenta ler o CSV para achar a coluna Place ID
+            df_blacklist = pd.read_csv(uploaded_file)
+            if "Place ID" in df_blacklist.columns:
+                ids_to_ignore = set(df_blacklist["Place ID"].dropna().astype(str).tolist())
+                st.session_state.blacklist_ids.update(ids_to_ignore)
+                st.success(f"{len(ids_to_ignore)} padarias antigas adicionadas à Blacklist!")
+            else:
+                st.error("O CSV precisa ter uma coluna chamada 'Place ID'.")
+        except Exception as e:
+            st.error(f"Erro ao ler arquivo: {e}")
+            
+    blacklist_count = len(st.session_state.blacklist_ids)
+    if blacklist_count > 0:
+        st.caption(f"🛡️ {blacklist_count} padarias serão ignoradas na busca.")
+
+    st.markdown("---")
+    
     if st.button("🔍 Buscar", type="primary"):
         cep_atual = st.session_state.cep_digitado
         
@@ -307,14 +340,29 @@ with st.sidebar:
         else:
             try:
                 with st.spinner("Buscando..."):
-                    st.session_state.seen_ids = set() 
+                    st.session_state.seen_ids = set() # Reseta os vistos AGORA
                     st.session_state.current_leads = [] 
                     geo = geocode_cep(cep_atual)
                     st.session_state.geo_context = geo
                     raw_places = scan_area_for_ids(geo["lat"], geo["lng"], raio_input)
-                    st.session_state.pool_of_ids = raw_places
+                    
+                    # FILTRO DE BLACKLIST
+                    filtered_places = []
+                    ignored_count = 0
+                    for p in raw_places:
+                        if p["place_id"] not in st.session_state.blacklist_ids:
+                            filtered_places.append(p)
+                        else:
+                            ignored_count += 1
+                            
+                    st.session_state.pool_of_ids = filtered_places
                     bairro_nome = geo.get('bairro', 'Região')
-                    st.success(f"Pronto! Foram encontradas {len(raw_places)} padarias no raio de {raio_input}km de {bairro_nome}.")
+                    
+                    msg_sucesso = f"Pronto! Encontramos {len(filtered_places)} novas padarias no raio de {raio_input}km."
+                    if ignored_count > 0:
+                        msg_sucesso += f" (Ignoramos {ignored_count} que já estavam na Blacklist)."
+                    
+                    st.success(msg_sucesso)
             except Exception as e:
                 st.error(str(e))
 
@@ -325,7 +373,9 @@ with st.sidebar:
     
     if st.session_state.pool_of_ids:
         all_ids = [p["place_id"] for p in st.session_state.pool_of_ids]
+        # Filtra os que já foram vistos NESTA sessão também
         available_ids = [pid for pid in all_ids if pid not in st.session_state.seen_ids]
+        
         count_avail = len(available_ids)
         count_seen = len(st.session_state.seen_ids)
         
@@ -334,7 +384,7 @@ with st.sidebar:
             <span style="font-size: 14px; opacity: 0.8">Disponíveis:</span><br>
             <span style="font-size: 24px; font-weight: 600; color:{COLOR_YELLOW}">{count_avail}</span><br>
             <hr style="margin: 8px 0; opacity: 0.2">
-            <span style="font-size: 14px; opacity: 0.8">Já Extraídos:</span><br>
+            <span style="font-size: 14px; opacity: 0.8">Já Extraídos Hoje:</span><br>
             <span style="font-size: 18px; font-weight: 600">{count_seen}</span>
         </div>
         """, unsafe_allow_html=True)
@@ -347,6 +397,8 @@ with st.sidebar:
                 st.session_state.current_leads.extend(new_leads) 
                 for pid in selected_ids:
                     st.session_state.seen_ids.add(pid)
+                    # Adiciona automaticamente à blacklist da sessão atual pra não repetir se buscar de novo
+                    st.session_state.blacklist_ids.add(pid) 
                 st.rerun()
         else:
             st.warning("Área zerada!")
@@ -385,8 +437,8 @@ if st.session_state.geo_context:
                 display_df.to_excel(writer, index=False)
             st.download_button("🔽 Baixar Excel Completo", output.getvalue(), "leads_sqg.xlsx", "application/vnd", use_container_width=True)
 else:
-    st.title("Bem-vindo ao Localizador de Padarias da SQG")
-    st.markdown("### Inteligência Georreferenciada para Prospecção Ativa de Padarias")
+    st.title("Bem-vindo ao Localizador SQG")
+    st.markdown("### Inteligência Georreferenciada para Prospecção Ativa")
     st.markdown("---")
     
     col_tut1, col_tut2 = st.columns([0.6, 0.4])
@@ -394,13 +446,13 @@ else:
     with col_tut1:
         st.markdown(textwrap.dedent(f"""
         <div class="tutorial-card">
-            <h4>⚙️ Como usar a ferramenta</h4>
+            <h4>🚀 Como usar a ferramenta</h4>
             <p style="margin-top:15px"><span class="step-number">1</span> <b>Defina o Alvo:</b><br>
             Insira o CEP de referência na barra lateral e o <b>Raio de busca</b> desejado.</p>
             <p><span class="step-number">2</span> <b>Pesquisa Inteligente:</b><br>
             Clique em 'Buscar'. O sistema fará uma pesquisa completa na região para identificar todas as padarias dentro da área selecionada.</p>
             <p><span class="step-number">3</span> <b>Extração de Dados:</b><br>
-            Com as padarias identificadas, defina quantas deseja detalhar e clique em 'Listar dados' para listar os telefones e endereços validados.</p>
+            Com as padarias identificadas, defina quantas deseja listar e clique em 'Listar dados' para revelar telefones, sites e endereços validados.</p>
             <p><span class="step-number">4</span> <b>Finalização:</b><br>
             Baixe a planilha (Excel/CSV) para sua prospecção ou clique no link da tabela para abrir a localização exata no Google Maps.</p>
         </div>
@@ -414,6 +466,12 @@ else:
             <b>A precisão é sua melhor amiga.</b><br><br>
             Recomendamos realizar buscas focadas em raios estratégicos (entre 3km e 5km).<br><br>
             Isso garante rotas logísticas mais densas, economiza tempo de deslocamento da equipe e otimiza a assertividade dos dados extraídos.
+            </p>
+        </div>
+        <div class="tutorial-card" style="border-left: 5px solid {COLOR_WHITE}; margin-top: 20px">
+            <h4>🛡️ Blacklist Anti-Duplicidade</h4>
+            <p style="font-size: 14px; opacity: 0.9">
+            Já tem uma lista de clientes? Suba o arquivo CSV na barra lateral para ignorá-los automaticamente nas novas buscas.
             </p>
         </div>
         """), unsafe_allow_html=True)
