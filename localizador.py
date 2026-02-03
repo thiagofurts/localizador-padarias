@@ -52,47 +52,59 @@ COLOR_BG_SIDEBAR = "#006da8"
 COLOR_TABLE_BG = "#FFFFFF"   
 COLOR_TABLE_TEXT = "#333333" 
 
-# --- CSS V31 (A SETINHA FLUTUANTE) ---
+# --- CSS V33 (A SETINHA FIXA E O HEADER INVISÍVEL) ---
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@400;600;700&display=swap');
 
-    /* 1. MATA O CABEÇALHO PRETO (Suma daqui!) */
+    /* 1. HEADER: Fica invisível, mas EXISTE (para não matar a setinha) */
     [data-testid="stHeader"] {{
+        background: transparent !important;
+        height: 0px !important; /* Tenta reduzir o impacto visual */
+    }}
+
+    /* 2. ESCONDE O RESTO (Decoração, Toolbar, etc) */
+    [data-testid="stDecoration"], 
+    [data-testid="stToolbar"], 
+    [data-testid="stStatusWidget"] {{
         display: none !important;
     }}
 
-    /* 2. FORÇA A SETINHA A APARECER FLUTUANDO (O Resgate) */
+    /* 3. A SETINHA: FIXA NA TELA (Desgruda do header) */
     [data-testid="stSidebarCollapsedControl"] {{
         display: block !important;
-        position: fixed !important; /* Isso solta ela do header */
-        top: 15px;
-        left: 15px;
-        z-index: 1000000 !important; /* Fica em cima de tudo */
-        background-color: {COLOR_BG_SIDEBAR}; /* Fundo azul pra destacar */
+        position: fixed !important; /* <--- O SEGRED0: Fixa na tela do navegador */
+        top: 20px !important;
+        left: 20px !important;
+        z-index: 1000001 !important; /* Fica acima de tudo */
+        
+        background-color: {COLOR_BG_SIDEBAR} !important;
         color: {COLOR_WHITE} !important;
-        padding: 0.5rem;
         border-radius: 8px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-        transition: all 0.3s;
+        padding: 6px;
+        transition: transform 0.2s;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }}
     
+    /* Hover da setinha */
     [data-testid="stSidebarCollapsedControl"]:hover {{
-        background-color: {COLOR_YELLOW};
-        color: black !important;
+        background-color: {COLOR_YELLOW} !important;
         transform: scale(1.1);
+        cursor: pointer;
     }}
-    
-    /* Garante que o ícone SVG dentro dela fique branco (ou preto no hover) */
+
+    /* Ícone dentro da setinha */
     [data-testid="stSidebarCollapsedControl"] svg {{
-        fill: currentColor !important;
+        fill: {COLOR_WHITE} !important;
+        width: 24px !important;
+        height: 24px !important;
     }}
 
     /* Remove instruções de input */
     [data-testid="InputInstructions"] {{ display: none !important; }}
     
-    /* Ajuste do topo da página */
-    .block-container {{ padding-top: 3rem !important; }}
+    /* Empurra o conteúdo pra baixo pra não ficar atrás da setinha */
+    .block-container {{ padding-top: 4rem !important; }}
 
     /* FONTES E CORES GERAIS */
     h1, h2, h3, button {{ font-family: 'Poppins', sans-serif !important; }}
@@ -199,8 +211,9 @@ def calculate_distance_km(lat1, lon1, lat2, lon2):
     return distance
 
 # --- API ---
-# GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"] 
-GOOGLE_API_KEY = "AIzaSyAQs7DaqMl4i4aSRYBiXy_0Xjyss0bBW5Y" 
+# LEMBRE-SE: Use st.secrets se for subir pro GitHub!
+GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"] 
+# GOOGLE_API_KEY = "SUA_CHAVE_AQUI_PARA_TESTE_LOCAL"
 
 GEOCODE_URL = "https://maps.googleapis.com/maps/api/geocode/json"
 NEARBY_URL = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
@@ -430,7 +443,7 @@ else:
     with col_tut1:
         st.markdown(textwrap.dedent(f"""
         <div class="tutorial-card">
-            <h4>⚙️ Como usar a ferramenta</h4>
+            <h4>🚀 Como usar a ferramenta</h4>
             <p style="margin-top:15px"><span class="step-number">1</span> <b>Defina o Alvo:</b><br>
             Insira o CEP de referência na barra lateral e o <b>Raio de busca</b> desejado.</p>
             <p><span class="step-number">2</span> <b>Pesquisa Inteligente:</b><br>
