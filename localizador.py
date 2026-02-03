@@ -52,39 +52,47 @@ COLOR_BG_SIDEBAR = "#006da8"
 COLOR_TABLE_BG = "#FFFFFF"   
 COLOR_TABLE_TEXT = "#333333" 
 
-# --- CSS V29 (RESGATE DA SETINHA) ---
+# --- CSS V31 (A SETINHA FLUTUANTE) ---
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@400;600;700&display=swap');
 
-    /* --- O TRUQUE DA SETINHA FANTASMA --- */
-    
-    /* 1. O Header existe, mas é transparente e 'intocável' (clique passa direto) */
+    /* 1. MATA O CABEÇALHO PRETO (Suma daqui!) */
     [data-testid="stHeader"] {{
-        background: transparent !important;
-        pointer-events: none; 
-    }}
-
-    /* 2. Esconde a decoração colorida e o botão de menu/deploy */
-    [data-testid="stDecoration"], [data-testid="stToolbar"] {{
         display: none !important;
     }}
 
-    /* 3. A SETINHA: Ela fica visível e 'clicável' */
+    /* 2. FORÇA A SETINHA A APARECER FLUTUANDO (O Resgate) */
     [data-testid="stSidebarCollapsedControl"] {{
         display: block !important;
-        pointer-events: auto !important; /* Permite clicar */
-        color: {COLOR_WHITE} !important; /* Cor branca pra ver no azul */
-        background-color: rgba(0,0,0,0.1); /* Fundo leve pra destacar */
-        border-radius: 0 0 8px 0;
-        padding: 4px;
+        position: fixed !important; /* Isso solta ela do header */
+        top: 15px;
+        left: 15px;
+        z-index: 1000000 !important; /* Fica em cima de tudo */
+        background-color: {COLOR_BG_SIDEBAR}; /* Fundo azul pra destacar */
+        color: {COLOR_WHITE} !important;
+        padding: 0.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        transition: all 0.3s;
+    }}
+    
+    [data-testid="stSidebarCollapsedControl"]:hover {{
+        background-color: {COLOR_YELLOW};
+        color: black !important;
+        transform: scale(1.1);
+    }}
+    
+    /* Garante que o ícone SVG dentro dela fique branco (ou preto no hover) */
+    [data-testid="stSidebarCollapsedControl"] svg {{
+        fill: currentColor !important;
     }}
 
-    /* Ajuste de topo pra não ficar buraco */
-    .block-container {{ padding-top: 2rem !important; }}
-    
     /* Remove instruções de input */
     [data-testid="InputInstructions"] {{ display: none !important; }}
+    
+    /* Ajuste do topo da página */
+    .block-container {{ padding-top: 3rem !important; }}
 
     /* FONTES E CORES GERAIS */
     h1, h2, h3, button {{ font-family: 'Poppins', sans-serif !important; }}
@@ -191,7 +199,6 @@ def calculate_distance_km(lat1, lon1, lat2, lon2):
     return distance
 
 # --- API ---
-# LEMBRE-SE: Use st.secrets se for subir pro GitHub!
 # GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"] 
 GOOGLE_API_KEY = "AIzaSyAQs7DaqMl4i4aSRYBiXy_0Xjyss0bBW5Y" 
 
@@ -423,7 +430,7 @@ else:
     with col_tut1:
         st.markdown(textwrap.dedent(f"""
         <div class="tutorial-card">
-            <h4>🚀 Como usar a ferramenta</h4>
+            <h4>⚙️ Como usar a ferramenta</h4>
             <p style="margin-top:15px"><span class="step-number">1</span> <b>Defina o Alvo:</b><br>
             Insira o CEP de referência na barra lateral e o <b>Raio de busca</b> desejado.</p>
             <p><span class="step-number">2</span> <b>Pesquisa Inteligente:</b><br>
