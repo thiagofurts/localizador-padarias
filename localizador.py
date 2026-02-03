@@ -52,15 +52,41 @@ COLOR_BG_SIDEBAR = "#006da8"
 COLOR_TABLE_BG = "#FFFFFF"   
 COLOR_TABLE_TEXT = "#333333" 
 
-# --- CSS V28 ---
+# --- CSS V29 (RESGATE DA SETINHA) ---
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@400;600;700&display=swap');
 
-    [data-testid="stHeader"] {{ display: none; }} 
+    /* --- O TRUQUE DA SETINHA FANTASMA --- */
+    
+    /* 1. O Header existe, mas é transparente e 'intocável' (clique passa direto) */
+    [data-testid="stHeader"] {{
+        background: transparent !important;
+        pointer-events: none; 
+    }}
+
+    /* 2. Esconde a decoração colorida e o botão de menu/deploy */
+    [data-testid="stDecoration"], [data-testid="stToolbar"] {{
+        display: none !important;
+    }}
+
+    /* 3. A SETINHA: Ela fica visível e 'clicável' */
+    [data-testid="stSidebarCollapsedControl"] {{
+        display: block !important;
+        pointer-events: auto !important; /* Permite clicar */
+        color: {COLOR_WHITE} !important; /* Cor branca pra ver no azul */
+        background-color: rgba(0,0,0,0.1); /* Fundo leve pra destacar */
+        border-radius: 0 0 8px 0;
+        padding: 4px;
+    }}
+
+    /* Ajuste de topo pra não ficar buraco */
     .block-container {{ padding-top: 2rem !important; }}
+    
+    /* Remove instruções de input */
     [data-testid="InputInstructions"] {{ display: none !important; }}
 
+    /* FONTES E CORES GERAIS */
     h1, h2, h3, button {{ font-family: 'Poppins', sans-serif !important; }}
     html, body, p, label, .stMarkdown, li, input, .stDataFrame {{ font-family: 'Inter', sans-serif !important; }}
 
@@ -165,7 +191,10 @@ def calculate_distance_km(lat1, lon1, lat2, lon2):
     return distance
 
 # --- API ---
-GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"] 
+# LEMBRE-SE: Use st.secrets se for subir pro GitHub!
+# GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"] 
+GOOGLE_API_KEY = "AIzaSyAQs7DaqMl4i4aSRYBiXy_0Xjyss0bBW5Y" 
+
 GEOCODE_URL = "https://maps.googleapis.com/maps/api/geocode/json"
 NEARBY_URL = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
 DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
@@ -385,8 +414,8 @@ if st.session_state.geo_context:
                 display_df.to_excel(writer, index=False)
             st.download_button("🔽 Baixar Excel Completo", output.getvalue(), "leads_sqg.xlsx", "application/vnd", use_container_width=True)
 else:
-    st.title("Bem-vindo ao Localizador de Padarias da SQG")
-    st.markdown("### Inteligência Georreferenciada para Prospecção Ativa de Padarias")
+    st.title("Bem-vindo ao Localizador SQG")
+    st.markdown("### Inteligência Georreferenciada para Prospecção Ativa")
     st.markdown("---")
     
     col_tut1, col_tut2 = st.columns([0.6, 0.4])
@@ -394,13 +423,13 @@ else:
     with col_tut1:
         st.markdown(textwrap.dedent(f"""
         <div class="tutorial-card">
-            <h4>⚙️ Como usar a ferramenta</h4>
+            <h4>🚀 Como usar a ferramenta</h4>
             <p style="margin-top:15px"><span class="step-number">1</span> <b>Defina o Alvo:</b><br>
             Insira o CEP de referência na barra lateral e o <b>Raio de busca</b> desejado.</p>
             <p><span class="step-number">2</span> <b>Pesquisa Inteligente:</b><br>
             Clique em 'Buscar'. O sistema fará uma pesquisa completa na região para identificar todas as padarias dentro da área selecionada.</p>
             <p><span class="step-number">3</span> <b>Extração de Dados:</b><br>
-            Com as padarias identificadas, defina quantas deseja detalhar e clique em 'Listar dados' para listar os telefones e endereços validados.</p>
+            Com as padarias identificadas, defina quantas deseja listar e clique em 'Listar dados' para revelar telefones, sites e endereços validados.</p>
             <p><span class="step-number">4</span> <b>Finalização:</b><br>
             Baixe a planilha (Excel/CSV) para sua prospecção ou clique no link da tabela para abrir a localização exata no Google Maps.</p>
         </div>
