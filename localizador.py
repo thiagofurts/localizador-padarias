@@ -52,59 +52,46 @@ COLOR_BG_SIDEBAR = "#006da8"
 COLOR_TABLE_BG = "#FFFFFF"   
 COLOR_TABLE_TEXT = "#333333" 
 
-# --- CSS V33 (A SETINHA FIXA E O HEADER INVISÍVEL) ---
+# --- CSS V34 (A VOLTA DA SETINHA - MODO SEGURO) ---
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@400;600;700&display=swap');
 
-    /* 1. HEADER: Fica invisível, mas EXISTE (para não matar a setinha) */
+    /* 1. O HEADER VOLTA AO NORMAL, MAS TRANSPARENTE */
+    /* Não mexemos na altura nem no display. Deixamos ele quieto lá. */
     [data-testid="stHeader"] {{
-        background: transparent !important;
-        height: 0px !important; /* Tenta reduzir o impacto visual */
+        background-color: transparent !important;
+        z-index: 1;
     }}
 
-    /* 2. ESCONDE O RESTO (Decoração, Toolbar, etc) */
+    /* 2. SÓ ESCONDEMOS A DECORAÇÃO (Linha colorida) E MENU */
     [data-testid="stDecoration"], 
     [data-testid="stToolbar"], 
     [data-testid="stStatusWidget"] {{
         display: none !important;
     }}
 
-    /* 3. A SETINHA: FIXA NA TELA (Desgruda do header) */
+    /* 3. A SETINHA: VISÍVEL E COM ALTO CONTRASTE */
     [data-testid="stSidebarCollapsedControl"] {{
         display: block !important;
-        position: fixed !important; /* <--- O SEGRED0: Fixa na tela do navegador */
-        top: 20px !important;
-        left: 20px !important;
-        z-index: 1000001 !important; /* Fica acima de tudo */
-        
-        background-color: {COLOR_BG_SIDEBAR} !important;
         color: {COLOR_WHITE} !important;
-        border-radius: 8px;
-        padding: 6px;
-        transition: transform 0.2s;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        background-color: {COLOR_BG_SIDEBAR} !important; /* Fundo azul para garantir visibilidade */
+        border-radius: 0 0 8px 0;
+        padding: 8px;
+        margin-top: 5px; /* Ajuste fino */
     }}
     
-    /* Hover da setinha */
-    [data-testid="stSidebarCollapsedControl"]:hover {{
-        background-color: {COLOR_YELLOW} !important;
-        transform: scale(1.1);
-        cursor: pointer;
-    }}
-
-    /* Ícone dentro da setinha */
+    /* Ícone da setinha */
     [data-testid="stSidebarCollapsedControl"] svg {{
         fill: {COLOR_WHITE} !important;
-        width: 24px !important;
-        height: 24px !important;
+        stroke: {COLOR_WHITE} !important;
     }}
 
     /* Remove instruções de input */
     [data-testid="InputInstructions"] {{ display: none !important; }}
     
-    /* Empurra o conteúdo pra baixo pra não ficar atrás da setinha */
-    .block-container {{ padding-top: 4rem !important; }}
+    /* Ajuste do topo da página para o conteúdo subir um pouco */
+    .block-container {{ padding-top: 2rem !important; }}
 
     /* FONTES E CORES GERAIS */
     h1, h2, h3, button {{ font-family: 'Poppins', sans-serif !important; }}
