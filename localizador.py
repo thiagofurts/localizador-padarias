@@ -52,12 +52,12 @@ COLOR_BG_SIDEBAR = "#006da8"
 COLOR_TABLE_BG = "#FFFFFF"   
 COLOR_TABLE_TEXT = "#333333" 
 
-# --- CSS V37 (MODO SEGURO + UPLOAD ESTILIZADO) ---
+# --- CSS V39 (CORREÇÃO DO DOWNLOAD + LEITURA DE CSV) ---
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@400;600;700&display=swap');
 
-    /* Remove instruções de input chata do topo dos campos */
+    /* Remove instruções de input */
     [data-testid="InputInstructions"] {{ display: none !important; }}
     
     /* FONTES E CORES GERAIS */
@@ -150,7 +150,7 @@ if 'seen_ids' not in st.session_state: st.session_state.seen_ids = set()
 if 'current_leads' not in st.session_state: st.session_state.current_leads = [] 
 if 'geo_context' not in st.session_state: st.session_state.geo_context = None
 if 'cep_digitado' not in st.session_state: st.session_state.cep_digitado = ""
-if 'blacklist_ids' not in st.session_state: st.session_state.blacklist_ids = set() # NOVO: Blacklist
+if 'blacklist_ids' not in st.session_state: st.session_state.blacklist_ids = set() 
 
 # --- FUNÇÕES ---
 def formatar_cep():
@@ -315,14 +315,30 @@ with st.sidebar:
     
     if uploaded_file is not None:
         try:
-            # Tenta ler o CSV para achar a coluna Place ID
-            df_blacklist = pd.read_csv(uploaded_file)
+            # TENTA LER O CSV NO MODO 'AUTO DETECT' (VIRGULA OU PONTO E VIRGULA)
+            try:
+                df_blacklist = pd.read_csv(uploaded_file, sep=None, engine='python')
+            except:
+                uploaded_file.seek(0)
+                df_blacklist = pd.read_csv(uploaded_file)
+            
+            # Limpa espaços em branco nos nomes das colunas
+            df_blacklist.columns = df_blacklist.columns.str.strip()
+            
+            # Procura a coluna certa
+            target_col = None
             if "Place ID" in df_blacklist.columns:
-                ids_to_ignore = set(df_blacklist["Place ID"].dropna().astype(str).tolist())
+                target_col = "Place ID"
+            elif "place_id" in df_blacklist.columns:
+                target_col = "place_id"
+            
+            if target_col:
+                ids_to_ignore = set(df_blacklist[target_col].dropna().astype(str).tolist())
                 st.session_state.blacklist_ids.update(ids_to_ignore)
-                st.success(f"{len(ids_to_ignore)} padarias antigas adicionadas à Blacklist!")
+                st.success(f"✅ {len(ids_to_ignore)} padarias importadas para a Blacklist!")
             else:
-                st.error("O CSV precisa ter uma coluna chamada 'Place ID'.")
+                st.error(f"Não achei a coluna 'Place ID'. Colunas encontradas: {list(df_blacklist.columns)}")
+                
         except Exception as e:
             st.error(f"Erro ao ler arquivo: {e}")
             
@@ -340,7 +356,7 @@ with st.sidebar:
         else:
             try:
                 with st.spinner("Buscando..."):
-                    st.session_state.seen_ids = set() # Reseta os vistos AGORA
+                    st.session_state.seen_ids = set() 
                     st.session_state.current_leads = [] 
                     geo = geocode_cep(cep_atual)
                     st.session_state.geo_context = geo
@@ -373,7 +389,6 @@ with st.sidebar:
     
     if st.session_state.pool_of_ids:
         all_ids = [p["place_id"] for p in st.session_state.pool_of_ids]
-        # Filtra os que já foram vistos NESTA sessão também
         available_ids = [pid for pid in all_ids if pid not in st.session_state.seen_ids]
         
         count_avail = len(available_ids)
@@ -397,11 +412,10 @@ with st.sidebar:
                 st.session_state.current_leads.extend(new_leads) 
                 for pid in selected_ids:
                     st.session_state.seen_ids.add(pid)
-                    # Adiciona automaticamente à blacklist da sessão atual pra não repetir se buscar de novo
                     st.session_state.blacklist_ids.add(pid) 
                 st.rerun()
         else:
-            st.warning("Área zerada!")
+            st.warning("Todos os dados listados!")
     else:
         st.info("Insira o CEP para começar.")
     st.markdown('</div>', unsafe_allow_html=True)
@@ -409,11 +423,14 @@ with st.sidebar:
 # --- ÁREA PRINCIPAL ---
 
 if st.session_state.geo_context:
-    st.title("Localizador SQG Pro")
+    st.title("Localizador de Padarias da SQG")
     st.markdown(f"**📍 Base:** {st.session_state.geo_context['formatted_address']}")
 
     if st.session_state.current_leads:
+        # AQUI ESTÁ A CORREÇÃO:
         df = pd.DataFrame(st.session_state.current_leads)
+        
+        # 1. Cria a versão apenas para EXIBIÇÃO na tela (Sem ID)
         display_df = df.drop(columns=["Place ID"], errors='ignore')
         
         st.markdown(f"### 📋 Lista de Padarias ({len(df)})")
@@ -429,12 +446,13 @@ if st.session_state.geo_context:
         
         col1, col2 = st.columns(2)
         with col1:
-            csv = display_df.to_csv(index=False).encode('utf-8-sig')
+            # 2. O Download agora usa 'df' (COM ID), não 'display_df'
+            csv = df.to_csv(index=False).encode('utf-8-sig')
             st.download_button("🔽 Baixar CSV Completo", csv, "leads_sqg.csv", "text/csv", use_container_width=True)
         with col2:
             output = BytesIO()
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                display_df.to_excel(writer, index=False)
+                df.to_excel(writer, index=False)
             st.download_button("🔽 Baixar Excel Completo", output.getvalue(), "leads_sqg.xlsx", "application/vnd", use_container_width=True)
 else:
     st.title("Bem-vindo ao Localizador SQG")
@@ -446,11 +464,11 @@ else:
     with col_tut1:
         st.markdown(textwrap.dedent(f"""
         <div class="tutorial-card">
-            <h4>🚀 Como usar a ferramenta</h4>
+            <h4>⚙️ Como usar a ferramenta</h4>
             <p style="margin-top:15px"><span class="step-number">1</span> <b>Defina o Alvo:</b><br>
             Insira o CEP de referência na barra lateral e o <b>Raio de busca</b> desejado.</p>
             <p><span class="step-number">2</span> <b>Pesquisa Inteligente:</b><br>
-            Clique em 'Buscar'. O sistema fará uma pesquisa completa na região para identificar todas as padarias dentro da área selecionada.</p>
+            Clique em 'Buscar'. O localizador fará uma pesquisa completa na região para identificar todas as padarias dentro da área selecionada.</p>
             <p><span class="step-number">3</span> <b>Extração de Dados:</b><br>
             Com as padarias identificadas, defina quantas deseja listar e clique em 'Listar dados' para revelar telefones, sites e endereços validados.</p>
             <p><span class="step-number">4</span> <b>Finalização:</b><br>
@@ -471,7 +489,7 @@ else:
         <div class="tutorial-card" style="border-left: 5px solid {COLOR_WHITE}; margin-top: 20px">
             <h4>🛡️ Blacklist Anti-Duplicidade</h4>
             <p style="font-size: 14px; opacity: 0.9">
-            Já tem uma lista de clientes? Suba o arquivo CSV na barra lateral para ignorá-los automaticamente nas novas buscas.
+            Já montou uma lista de clientes anteriormente? Faça upload do arquivo CSV na barra lateral para ignorá-los automaticamente em novas buscas.
             </p>
         </div>
         """), unsafe_allow_html=True)
